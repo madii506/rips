@@ -272,3 +272,101 @@ h2 b { font-weight: 400; color: var(--or); }
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; scroll-behavior: auto !important; }
   .rv { opacity: 1; transform: none; }
 }
+
+/* ---------- v2: interaction layer ---------- */
+.cglow { position: fixed; left: 0; top: 0; width: 640px; height: 640px; margin: -320px 0 0 -320px; border-radius: 50%; z-index: 1; pointer-events: none; background: radial-gradient(circle, rgba(255, 110, 30, .1), rgba(255, 90, 20, .04) 40%, transparent 70%); will-change: transform; }
+/* entrance */
+.play > * { animation: rise .9s var(--ease) backwards; }
+.play > .stage { animation-delay: .05s; } .play > .left { animation-delay: .18s; } .play > .right { animation-delay: .28s; }
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } }
+.tilt { animation: drop 1.1s var(--spring) .2s backwards; }
+@keyframes drop { from { opacity: 0; transform: translateY(-120px) rotate(-8deg) scale(.9); } }
+.pedestal { animation: ped 1s var(--ease) backwards; }
+@keyframes ped { from { opacity: 0; transform: translateX(-50%) scaleX(.6); } }
+/* the pack tilts toward the pointer, a foil sheen follows it */
+.pack { touch-action: pan-y; cursor: grab; }
+.pack.drag { cursor: grabbing; }
+.tilt { position: relative; width: 100%; height: 100%; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .5s var(--ease); transform-style: preserve-3d; }
+.pack.live .tilt { transition: transform .08s linear; }
+.tilt > div { width: 100%; height: 100%; }
+.sheen { position: absolute; left: 15%; right: 15%; top: 19.3%; bottom: 19.3%; pointer-events: none; mix-blend-mode: overlay; opacity: .85;
+  background: linear-gradient(105deg, transparent calc(var(--sx, 30%) - 18%), rgba(255, 255, 255, .75) var(--sx, 30%), transparent calc(var(--sx, 30%) + 18%)); transition: opacity .4s; }
+.stage.torn .sheen { opacity: 0; }
+.swipe { position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 8px; pointer-events: none; opacity: 0; transition: opacity .4s; }
+.swipe span { font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: #1a0c08; background: rgba(255, 243, 220, .92); padding: 7px 10px; border-radius: 8px; white-space: nowrap; }
+.swipe i { width: 130px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, #fff3dc, transparent); background-size: 200% 100%; animation: swipe 1.4s linear infinite; }
+@keyframes swipe { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.stage:not(.torn) .pack:hover .swipe { opacity: 1; }
+.stage.torn .swipe { display: none; }
+/* tear burst */
+.burst { position: absolute; left: 50%; top: 38%; width: 0; height: 0; z-index: 7; pointer-events: none; }
+.burst i { position: absolute; left: 0; top: 0; border-radius: 2px; }
+/* session tray */
+.tray { display: grid; gap: 8px; justify-items: center; margin-top: 4px; }
+.tray-h { display: flex; gap: 10px; align-items: baseline; font: 700 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--mute); }
+.tray-h em { font-style: normal; font-weight: 400; color: var(--mute2); letter-spacing: .08em; text-transform: none; }
+.slots { display: flex; gap: 8px; }
+.slots i, .slots a { position: relative; width: 44px; height: 66px; border-radius: 8px; border: 1.5px dashed rgba(255, 255, 255, .14); background: rgba(0, 0, 0, .25); display: block; overflow: hidden; }
+.slots a { border: 0; box-shadow: inset 0 0 0 1.5px rgba(255, 190, 90, .55), 0 0 18px -4px rgba(255, 140, 50, .6); background: #140e0c; animation: slotin .6s var(--spring); }
+.slots a img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+.slots a:hover { transform: translateY(-3px); }
+@keyframes slotin { from { transform: translateY(-40px) scale(.6); opacity: 0; } }
+.stage { min-height: 700px; }
+.stage .ctl { gap: 10px; }
+/* odds simulator */
+.sim { margin-top: 16px; }
+.sim-h { display: flex; justify-content: space-between; align-items: baseline; font: 700 11.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+.sim-h b { font: 400 22px/1 var(--disp); letter-spacing: .02em; color: var(--text); text-transform: none; }
+.sim input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 8px 0 0; background: transparent; cursor: pointer; }
+.sim input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--or) var(--fill, 0%), rgba(255, 255, 255, .1) var(--fill, 0%)); }
+.sim input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); }
+.sim input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--or); }
+.sim input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: #fff3dc; box-shadow: 0 0 0 4px rgba(255, 122, 26, .45), 0 4px 10px rgba(0, 0, 0, .5); }
+.sim input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff3dc; box-shadow: 0 0 0 4px rgba(255, 122, 26, .45); }
+.odds b { display: inline-block; transition: transform .25s var(--spring); }
+.odds b.bump { transform: scale(1.12); }
+/* shelf slide when it changes */
+.shelf .swap { animation: swap .55s var(--ease); }
+@keyframes swap { from { opacity: 0; transform: translateX(18px); } }
+.shelf .auto { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .07); margin-top: 14px; overflow: hidden; }
+.shelf .auto i { display: block; height: 100%; width: 100%; background: var(--or); transform-origin: 0 50%; transform: scaleX(0); }
+.shelf .auto i.run { animation: auto 7s linear forwards; }
+.shelf:hover .auto i.run { animation-play-state: paused; }
+@keyframes auto { to { transform: scaleX(1); } }
+/* tilt for cards */
+.tiltc { transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px)); }
+.step { transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.step::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(260px circle at var(--gx, 50%) var(--gy, 0%), rgba(255, 140, 50, .14), transparent 60%); opacity: 0; transition: opacity .3s; }
+.step:hover::after { opacity: 1; }
+.mc.shown:hover { transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-5px); }
+.mag { will-change: transform; }
+.cta { position: relative; overflow: hidden; }
+.cta::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, .45) 50%, transparent 65%); transform: translateX(-120%); animation: ctashine 4.5s ease-in-out infinite 1.5s; }
+@keyframes ctashine { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.ripple { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .45); transform: scale(0); animation: ripple .6s var(--ease) forwards; pointer-events: none; }
+@keyframes ripple { to { transform: scale(4); opacity: 0; } }
+.track:hover { animation-play-state: paused; }
+@media (max-width: 860px) { .stage { min-height: 640px; } .cglow { display: none; } }
+@media (max-width: 640px) { .stage { min-height: 600px; } .slots i, .slots a { width: 40px; height: 60px; } }
+@media (prefers-reduced-motion: reduce) { .play > *, .tilt, .pedestal { animation: none !important; } }
+@media (hover: none) { .stage:not(.torn) .swipe { opacity: 1; } }
+/* v2 layout: room for the tray under the pedestal */
+.stage { min-height: 760px; }
+.pack { margin-top: -110px; }
+.pedestal { bottom: 246px; }
+.stage .glow { top: 36%; }
+.pull { top: 34%; }
+.burst { top: 30%; }
+.flash { top: 32%; }
+@media (max-width: 860px) { .stage { min-height: 720px; } .pedestal { bottom: 226px; } }
+@media (max-width: 640px) { .stage { min-height: 680px; } .pack { margin-top: -96px; } .pedestal { bottom: 250px; } }
+/* v2 layout: room for the tray under the pedestal */
+.stage { min-height: 760px; }
+.pack { margin-top: -110px; }
+.pedestal { bottom: 246px; }
+.stage .glow { top: 36%; }
+.pull { top: 34%; }
+.burst { top: 30%; }
+.flash { top: 32%; }
+@media (max-width: 860px) { .stage { min-height: 720px; } .pedestal { bottom: 226px; } }
+@media (max-width: 640px) { .stage { min-height: 680px; } .pack { margin-top: -96px; } .pedestal { bottom: 250px; } }
