@@ -15,11 +15,12 @@
 <link rel="icon" type="image/png" href="/assets/img/favicon-32.png?v=2" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/img/favicon-180.png?v=2">
 <link rel="preload" href="/assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v=1">
+<link rel="stylesheet" href="/assets/css/site.css?v=2">
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
 <div class="embers" id="embers" aria-hidden="true"></div>
+<div class="cglow" id="cglow" aria-hidden="true"></div>
 <header class="bar">
   <a class="brand" href="/" aria-label="RIPS home"><span class="ico" data-pack="lg"></span>RIPS</a>
   <nav class="nav" id="nav"><a href="#play" class="on keep">Play</a><a href="#how" class="keep">How it works</a><a href="#shelf">The shelf</a><a href="/verify" class="keep keep2">Verify</a><a id="xLink" href="#" target="_blank" rel="noopener" hidden>𝕏</a></nav>
@@ -29,16 +30,16 @@
 
 <main>
 <section class="play" id="play">
-  <div class="col left">
+  <div class="col left" id="colL">
     <div class="pn">
-      <div class="k">Odds for this slab</div>
+      <div class="k">Odds right now</div>
       <div class="odds"><small>1 in</small><b id="oddsN">—</b></div>
       <div class="two">
         <div><div class="k">Rip cost</div><div class="v">$<span data-cfg="ripUsd">2</span></div></div>
         <div><div class="k">Boost every</div><div class="v"><span data-cfg="pity">100</span> rips</div></div>
       </div>
-      <div class="meter"><i id="oddsMeter"></i></div>
-      <p class="sub2">Odds are the slab's value divided by the rip cost. Every <span data-cfg="pity">100</span> rips without a tear doubles them, so every pack opens.</p>
+      <div class="sim"><div class="sim-h"><span>Rips so far</span><b id="simR">0</b></div><input type="range" id="simIn" min="0" max="600" value="0" step="1" aria-label="Rips so far"><div class="sim-h" style="margin-top:10px"><span>Chance it's open by now</span><b id="simP">0%</b></div><div class="meter"><i id="oddsMeter"></i></div><div class="sim-h" style="margin-top:10px"><span>Rips it takes, on average</span><b id="simE">—</b></div></div>
+      <p class="sub2">Odds are the slab's value divided by the rip cost. Every <span data-cfg="pity">100</span> rips without a tear doubles them, so every pack opens. Drag to see how fast.</p>
     </div>
     <div class="pn">
       <div class="k or">Provably fair</div>
@@ -56,13 +57,15 @@
     <svg class="lines" id="stLines" aria-hidden="true"></svg>
     <div class="glow" aria-hidden="true"></div>
     <div class="pedestal" aria-hidden="true"></div>
-    <div class="pack" id="pack" data-pack="stage" aria-hidden="true"></div>
+    <div class="pack" id="pack" aria-hidden="true"><div class="tilt" id="tilt"><div data-pack="stage"></div><i class="sheen"></i></div><div class="swipe" id="swipe"><span>swipe across to rip</span><i></i></div></div>
+    <div class="burst" id="burst" aria-hidden="true"></div>
     <div class="flash" aria-hidden="true"></div>
     <div class="pull" id="pull"><div class="ph"><img id="pullImg" alt=""></div><div class="cap"><div class="nm" id="pullNm"></div><div class="mt" id="pullMt"></div></div></div>
-    <div class="ctl"><button class="btn or" type="button" id="tryBtn">See a pull</button><div class="note" id="tryNote">What tearing a pack open looks like. Real rips roll the odds.</div></div>
+    <div class="ctl"><button class="btn or mag" type="button" id="tryBtn">See a pull</button><div class="note" id="tryNote">What tearing a pack open looks like. Real rips roll the odds.</div>
+      <div class="tray" id="tray"><div class="tray-h"><span>Your pulls</span><em>this session, for fun</em></div><div class="slots" id="slots"><i></i><i></i><i></i><i></i><i></i></div></div></div>
   </div>
 
-  <div class="col right">
+  <div class="col right" id="colR">
     <div class="pn shelf">
       <div class="top"><div class="k or">On the shelf</div><div class="arrows"><button type="button" id="shPrev" aria-label="Previous slab">‹</button><button type="button" id="shNext" aria-label="Next slab">›</button></div></div>
       <div class="val"><span id="shVal">—</span><small>USD</small></div>
@@ -70,8 +73,9 @@
       <div class="pic"><div class="im"><img id="shImg" alt=""></div>
         <div class="tbl"><div>Grade<b id="shGrade">—</b></div><div>Grader<b id="shGr">—</b></div><div>Year<b id="shYear">—</b></div><div>Ask<b id="shAsk">—</b></div></div></div>
       <a class="lnk" id="shLink" href="#shelf">See the listing ↗</a>
+      <div class="auto"><i id="shAuto"></i></div>
     </div>
-    <button class="btn or cta" type="button" id="ripBtn">Connect to rip</button>
+    <button class="btn or cta mag" type="button" id="ripBtn">Connect to rip</button>
     <div id="caBox"></div>
     <p class="sub2" style="margin:0;text-align:center">Real slabs on the market right now. Fees buy slabs like these into packs.</p>
   </div>
@@ -120,7 +124,7 @@
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/assets/js/config.js?v=1"></script>
-<script src="/assets/js/app.js?v=1"></script>
+<script src="/assets/js/app.js?v=2"></script>
 <script src="/assets/js/wallet.js?v=1"></script>
 </body>
 </html>
