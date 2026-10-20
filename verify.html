@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RIPS — verify</title>
+<meta name="description" content="Replay any RIPS rip in your browser: the seed hash, the HMAC and the roll.">
+<meta name="theme-color" content="#0a0708">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="stylesheet" href="/assets/css/site.css?v=1">
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<header class="bar">
+  <a class="brand" href="/" aria-label="RIPS home"><span class="ico" id="ico"></span>RIPS</a>
+  <nav class="nav"><a href="/#play" class="keep">Play</a><a href="/#how" class="keep">How it works</a><a href="/verify" class="on keep keep2">Verify</a></nav>
+  <div class="barR"><span id="navWallet" class="wwrap"></span></div>
+</header>
+<main class="vwrap">
+  <div class="eyebrow">provably fair</div>
+  <h2>Verify a <b>rip.</b></h2>
+  <p class="lede" style="margin-bottom:0">Every pack's secret seed is locked with a public SHA-256 hash before the first rip. Once the pack tears open the seed is revealed. Paste it here with the rip's client seed, its number and the odds at that moment, and your browser replays the roll. Nothing leaves this page.</p>
+  <form class="vform" id="vf" autocomplete="off">
+    <label>Server seed (revealed when the pack opens)<input id="vSeed" placeholder="the pack's secret seed" spellcheck="false"></label>
+    <label>Seed hash (posted before rip one)<input id="vHash" placeholder="optional: the hash to check the seed against" spellcheck="false"></label>
+    <div class="vrow">
+      <label>Client seed<input id="vClient" placeholder="your seed for that rip" spellcheck="false"></label>
+      <label>Rip number<input id="vNonce" inputmode="numeric" placeholder="1"></label>
+    </div>
+    <label>Odds at that rip (1 in N)<input id="vN" inputmode="numeric" placeholder="for example 300"></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn or" type="submit">Replay the roll</button><button class="btn gh" type="button" id="vEx">Fill in an example</button></div>
+  </form>
+  <div class="vout" id="vout" hidden>
+    <div class="res" id="vHashOut"></div>
+    <div class="res" id="vHmac"></div>
+    <div class="res"><div class="k">Roll</div><div class="big" id="vRoll"></div><div id="vVerdict" style="margin-top:8px"></div></div>
+  </div>
+  <div class="pn" style="margin-top:34px">
+    <div class="k or">The exact rule</div>
+    <p class="sub2">roll = first 13 hex characters of HMAC-SHA256(key: server seed, message: "client seed:rip number"), read as a number, mod N. A roll of 0 tears the pack open. N starts at the slab's value divided by the rip cost and halves after every 100 rips without a tear.</p>
+  </div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/assets/js/config.js?v=1"></script>
+<script>
+(function () {
+  const $ = s => document.querySelector(s), enc = new TextEncoder();
+  const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  const sha = async s => hex(await crypto.subtle.digest('SHA-256', enc.encode(s)));
+  async function hmac(key, msg) { const k = await crypto.subtle.importKey('raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return hex(await crypto.subtle.sign('HMAC', k, enc.encode(msg))); }
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  $('#vf').addEventListener('submit', async e => {
+    e.preventDefault();
+    const seed = $('#vSeed').value.trim(), want = $('#vHash').value.trim().toLowerCase(), client = $('#vClient').value.trim(), nonce = parseInt($('#vNonce').value || '1', 10), N = parseInt($('#vN').value || '0', 10);
+    if (!seed || !client || !(N >= 1) || !(nonce >= 1)) { const t = $('#toast'); t.textContent = 'Fill in the seed, the client seed, the rip number and the odds.'; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2600); return; }
+    const h = await sha(seed), mac = await hmac(seed, client + ':' + nonce), roll = parseInt(mac.slice(0, 13), 16) % N;
+    $('#vHashOut').innerHTML = `<div class="k">SHA-256 of the seed</div><b>${h}</b>${want ? `<div style="margin-top:6px;color:${want === h ? 'var(--ok)' : '#ff6a5a'}">${want === h ? 'Matches the posted hash.' : 'Does not match the posted hash.'}</div>` : ''}`;
+    $('#vHmac').innerHTML = `<div class="k">HMAC-SHA256(seed, "${esc(client)}:${nonce}")</div><b>${mac}</b>`;
+    $('#vRoll').textContent = roll.toLocaleString('en-US') + ' / ' + N.toLocaleString('en-US'); $('#vRoll').classList.toggle('win', roll === 0);
+    $('#vVerdict').innerHTML = roll === 0 ? '<b style="color:var(--ok)">A 0. This rip tears the pack open.</b>' : 'Not a 0, so the pack stays sealed on this rip.';
+    $('#vout').hidden = false;
+  });
+  $('#vEx').onclick = async () => {
+    const r = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+    const seed = r(32); $('#vSeed').value = seed; $('#vHash').value = await sha(seed); $('#vClient').value = r(8); $('#vNonce').value = String(1 + Math.floor(Math.random() * 200)); $('#vN').value = '300';
+    $('#vf').requestSubmit();
+  };
+})();
+</script>
+<script src="/assets/js/wallet.js?v=1"></script>
+<script>
+(function () { // the small pack mark in the bar
+  const z = 'M20,156 L44,128 L58,146 L74,118 L90,140 L106,110 L122,134 L138,104 L154,126 L180,96';
+  const t = (y, up) => { let d = ''; for (let i = 0; i <= 12; i++) d += 'L' + (30 + i * 140 / 12).toFixed(1) + ',' + (i % 2 ? (up ? y - 9 : y + 9) : y) + ' '; return d; };
+  document.getElementById('ico').innerHTML = '<svg viewBox="0 0 200 270"><defs><linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd08a"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6a1a"/><stop offset="1" stop-color="#e2480c"/></linearGradient><clipPath id="c"><rect x="30" y="52" width="140" height="166"/></clipPath></defs><path d="M30,36 ' + t(36, true) + ' L170,36 L170,50 L30,50 Z" fill="#ff7a1a"/><path d="M30,220 L170,220 L170,234 ' + t(234, false).trim().split(' ').reverse().join(' ') + ' L30,234 Z" fill="#ff7a1a"/><path d="M30,52 L100,52 L100,218 L30,218 Z" fill="url(#a)"/><path d="M100,52 L170,52 L170,218 L100,218 Z" fill="url(#b)"/><g clip-path="url(#c)"><path d="' + z + '" fill="none" stroke="#1a0c08" stroke-width="13" stroke-linejoin="round"/><path d="' + z + '" fill="none" stroke="#fff3dc" stroke-width="5" stroke-linejoin="round"/></g></svg>';
+})();
+</script>
+</body>
+</html>

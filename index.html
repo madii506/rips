@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RIPS</title>
+<meta name="description" content="Real graded slabs, sealed in packs. Fees stock the packs, every rip burns $RIPS, and the slab you pull lands in your wallet.">
+<meta property="og:title" content="RIPS">
+<meta property="og:description" content="Real graded slabs, sealed in packs. Rip one open and the slab is yours.">
+<meta property="og:image" content="https://rips.vercel.app/assets/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0708">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/img/favicon-180.png">
+<link rel="preload" href="/assets/fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css?v=1">
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="embers" id="embers" aria-hidden="true"></div>
+<header class="bar">
+  <a class="brand" href="/" aria-label="RIPS home"><span class="ico" data-pack="lg"></span>RIPS</a>
+  <nav class="nav" id="nav"><a href="#play" class="on keep">Play</a><a href="#how" class="keep">How it works</a><a href="#shelf">The shelf</a><a href="/verify" class="keep keep2">Verify</a><a id="xLink" href="#" target="_blank" rel="noopener" hidden>𝕏</a></nav>
+  <div class="barR"><span id="navWallet" class="wwrap"></span></div>
+</header>
+<div class="ticker" aria-hidden="true"><span class="live"><i></i>LIVE</span><div class="tk"><div class="track" id="tape"></div></div></div>
+
+<main>
+<section class="play" id="play">
+  <div class="col left">
+    <div class="pn">
+      <div class="k">Odds for this slab</div>
+      <div class="odds"><small>1 in</small><b id="oddsN">—</b></div>
+      <div class="two">
+        <div><div class="k">Rip cost</div><div class="v">$<span data-cfg="ripUsd">2</span></div></div>
+        <div><div class="k">Boost every</div><div class="v"><span data-cfg="pity">100</span> rips</div></div>
+      </div>
+      <div class="meter"><i id="oddsMeter"></i></div>
+      <p class="sub2">Odds are the slab's value divided by the rip cost. Every <span data-cfg="pity">100</span> rips without a tear doubles them, so every pack opens.</p>
+    </div>
+    <div class="pn">
+      <div class="k or">Provably fair</div>
+      <p class="sub2">Each pack's secret seed is locked with a public hash before the first rip. Every roll is HMAC-SHA256 of that seed, your own seed and a counter.</p>
+      <div class="seed" id="seedBox">The first pack's seed hash goes up here before rip one.</div>
+      <a class="lnk" href="/verify">Verify a rip →</a>
+    </div>
+    <div class="pn burn">
+      <div class="k">🔥 Burned</div><div class="bv" id="burnV">Every rip<small>$RIPS</small></div>
+      <p class="sub2" id="burnD">Every token spent on a rip goes to the incinerator. Gone for good.</p>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <svg class="lines" id="stLines" aria-hidden="true"></svg>
+    <div class="glow" aria-hidden="true"></div>
+    <div class="pedestal" aria-hidden="true"></div>
+    <div class="pack" id="pack" data-pack="stage" aria-hidden="true"></div>
+    <div class="flash" aria-hidden="true"></div>
+    <div class="pull" id="pull"><div class="ph"><img id="pullImg" alt=""></div><div class="cap"><div class="nm" id="pullNm"></div><div class="mt" id="pullMt"></div></div></div>
+    <div class="ctl"><button class="btn or" type="button" id="tryBtn">See a pull</button><div class="note" id="tryNote">What tearing a pack open looks like. Real rips roll the odds.</div></div>
+  </div>
+
+  <div class="col right">
+    <div class="pn shelf">
+      <div class="top"><div class="k or">On the shelf</div><div class="arrows"><button type="button" id="shPrev" aria-label="Previous slab">‹</button><button type="button" id="shNext" aria-label="Next slab">›</button></div></div>
+      <div class="val"><span id="shVal">—</span><small>USD</small></div>
+      <div class="name" id="shName">Loading real slabs…</div>
+      <div class="pic"><div class="im"><img id="shImg" alt=""></div>
+        <div class="tbl"><div>Grade<b id="shGrade">—</b></div><div>Grader<b id="shGr">—</b></div><div>Year<b id="shYear">—</b></div><div>Ask<b id="shAsk">—</b></div></div></div>
+      <a class="lnk" id="shLink" href="#shelf">See the listing ↗</a>
+    </div>
+    <button class="btn or cta" type="button" id="ripBtn">Connect to rip</button>
+    <div id="caBox"></div>
+    <p class="sub2" style="margin:0;text-align:center">Real slabs on the market right now. Fees buy slabs like these into packs.</p>
+  </div>
+</section>
+
+<section class="band" id="how">
+  <div class="eyebrow rv">01 — how it works</div>
+  <h2 class="rv">Fees stock it. <b>You rip it.</b></h2>
+  <p class="lede rv">One sealed pack on the table with one real graded slab inside. Everyone rips the same pack, and the rip that tears it open takes the slab home.</p>
+  <div class="steps">
+    <div class="step rv"><div class="n">01</div><h3>Fees stock the pack</h3><p>Creator fees from every $RIPS trade buy a real graded slab and seal it in the next pack. Each slab is a Collector Crypt token backed by the physical card in their vault.</p></div>
+    <div class="step rv" style="--d:.08s"><div class="n">02</div><h3>Rip it</h3><p>Each rip burns a fixed $<span data-cfg="ripUsd">2</span> of $RIPS, priced the moment you click. Your rip rolls a number from 0 up to the odds. Roll a 0 and the pack tears open.</p></div>
+    <div class="step rv" style="--d:.16s"><div class="n">03</div><h3>Keep the slab</h3><p>The slab goes to the wallet that tore the pack. Redeem the real card through Collector Crypt and have it shipped, or sell it back.</p></div>
+  </div>
+  <div class="rules rv">
+    <div><div class="k">Rip cost</div><div class="v">$<span data-cfg="ripUsd">2</span> of $RIPS</div></div>
+    <div><div class="k">Burned</div><div class="v or">Every rip</div></div>
+    <div><div class="k">Odds</div><div class="v">Value ÷ $<span data-cfg="ripUsd">2</span></div></div>
+    <div><div class="k">Boost</div><div class="v or">2× every <span data-cfg="pity">100</span></div></div>
+  </div>
+</section>
+
+<section class="band" id="shelf">
+  <div class="mhead">
+    <div><div class="eyebrow rv">02 — the shelf</div><h2 class="rv">Real slabs, <b>live.</b></h2><p class="lede rv">Graded Pokémon slabs listed on Solana right now. This is the market the packs get stocked from.</p></div>
+    <span class="chip rv" id="mktChip"><i></i>loading</span>
+  </div>
+  <div class="tabs rv" id="mktTabs" role="tablist"><span class="tab-ind" aria-hidden="true"></span><button class="on" type="button" data-v="fair" role="tab" aria-selected="true">Fair price</button><button type="button" data-v="tens" role="tab" aria-selected="false">Gem Mint 10s</button><button type="button" data-v="new" role="tab" aria-selected="false">Just listed</button></div>
+  <div class="mgrid" id="mgrid"></div>
+  <p class="mfine"><span>Vaulted, tokenized cards from Collector Crypt, as listed on Magic Eden. Asks are the sellers'; insured values come with each card.</span><a href="https://magiceden.io/marketplace/collector_crypt" target="_blank" rel="noopener">Browse every listing ↗</a></p>
+</section>
+
+<section class="band" id="faq">
+  <div class="eyebrow rv">03 — questions</div>
+  <h2 class="rv">Before you <b>rip.</b></h2>
+  <div class="faq rv">
+    <details><summary>What is RIPS?</summary><div>A pack you rip open on chain. Creator fees buy a real graded slab and seal it in a pack, everyone rips the same pack, every rip burns $RIPS, and the rip that tears it open wins the slab.</div></details>
+    <details><summary>Is the slab real?</summary><div>Yes. Every slab is a Collector Crypt token backed by a physical graded card in their vault. You can redeem the card and have it shipped, or sell it back through Collector Crypt.</div></details>
+    <details><summary>What does a rip cost?</summary><div>A fixed $<span data-cfg="ripUsd">2</span> of $RIPS, priced when you click and burned on the spot. Every token spent goes to the Solana incinerator, where nobody can touch it again.</div></details>
+    <details><summary>How do the odds work?</summary><div>A pack starts at 1 in (slab value ÷ $<span data-cfg="ripUsd">2</span>). Every <span data-cfg="pity">100</span> rips without a tear, the odds double in your favour, so every pack opens eventually.</div></details>
+    <details><summary>Can I check it's fair?</summary><div>Yes. Before the first rip the pack's secret seed is locked with a public SHA-256 hash. Each roll is HMAC-SHA256 of that seed with your own seed and a counter. When the pack opens the seed is revealed, and the verify page replays every roll in your browser.</div></details>
+    <details><summary>When can I rip?</summary><div>When $RIPS launches and the first pack is stocked. The contract address goes up here and on X at the same time.</div></details>
+    <details><summary>Is RIPS connected to Pokémon?</summary><div>No. RIPS is independent and not affiliated with Nintendo, The Pokémon Company, Collector Crypt, Magic Eden or any grading company.</div></details>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/assets/js/config.js?v=1"></script>
+<script src="/assets/js/app.js?v=1"></script>
+<script src="/assets/js/wallet.js?v=1"></script>
+</body>
+</html>
