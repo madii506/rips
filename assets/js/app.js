@@ -51,12 +51,14 @@
   const mcache = {};
   async function mFetch(v) { const c = mcache[v]; if (c && Date.now() - c.t < 55000) return c.j; const j = await getJ('/api/market?view=' + v); if (!j || !j.ok) throw new Error('bad'); mcache[v] = { j, t: Date.now() }; return j; }
 
-  /* ---------- the shelf panel: one real slab at a time, and the odds a pack holding it would start at ---------- */
-  let shelf = [], si = 0;
-  function showSlab(i) {
+  /* ---------- the shelf panel: one real slab at a time, with the odds a pack holding it would start at ---------- */
+  let shelf = [], si = 0, N0 = 0, autoT = null, shelfHover = false;
+  function countTo(el, to, ms = 650) { const from = Number(el._v || 0); el._v = to; if (reduce || !from) { el.textContent = Math.round(to).toLocaleString('en-US'); return; } const t0 = performance.now(); const st = t => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-US'); if (k < 1) requestAnimationFrame(st); }; requestAnimationFrame(st); }
+  const swap = el => { if (!el || reduce) return; el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); };
+  function showSlab(i, auto) {
     if (!shelf.length) return; si = (i + shelf.length) % shelf.length; const x = shelf[si];
     const value = x.insured || x.usd || 0;
-    $('#shVal').textContent = value ? Math.round(value).toLocaleString('en-US') : '—';
+    if (value) countTo($('#shVal'), value); else $('#shVal').textContent = '—';
     $('#shName').textContent = x.name || 'Graded card';
     $('#shGrade').textContent = x.gradeLabel || (x.grade ? 'Grade ' + x.grade : '—');
     $('#shGr').textContent = x.grader || '—'; $('#shYear').textContent = x.year || '—';
@@ -64,30 +66,89 @@
     const im = $('#shImg'); im.classList.remove('ld'); im.alt = x.name || ''; im.dataset.o = x.image || '';
     if (x.image) im.src = thumb(x.image, 260); else im.removeAttribute('src');
     const a = $('#shLink'); a.href = x.url; a.target = '_blank'; a.rel = 'noopener';
-    const n = Math.max(2, Math.round(value / ripUsd)); $('#oddsN').textContent = n.toLocaleString('en-US');
-    $('#oddsMeter').style.width = Math.min(100, 8 + 92 * (ripUsd / Math.max(value, ripUsd)) * 40) + '%';
+    [$('#shName'), $('.shelf .pic'), $('.shelf .val')].forEach(swap);
+    N0 = Math.max(2, Math.round(value / ripUsd)); simSetup();
+    startAuto();
   }
+  function startAuto() { clearTimeout(autoT); const bar = $('#shAuto'); if (!bar || shelf.length < 2) return; bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run'); autoT = setTimeout(function tick() { if (document.hidden || shelfHover) { autoT = setTimeout(tick, 1500); return; } showSlab(si + 1, true); }, 7000); }
+  $('.shelf').addEventListener('pointerenter', () => { shelfHover = true; }); $('.shelf').addEventListener('pointerleave', () => { shelfHover = false; });
   $('#shImg').addEventListener('load', e => e.target.classList.add('ld'));
   $('#shImg').addEventListener('error', e => { const im = e.target, o = im.dataset.o; if (o && im.src !== o) { im.dataset.o = ''; im.src = o; } });
   $('#shPrev').onclick = () => showSlab(si - 1); $('#shNext').onclick = () => showSlab(si + 1);
+
+  /* the odds simulator: drag the rips-so-far slider, watch the odds climb and the chance the pack is open */
+  const simIn = $('#simIn');
+  const nAt = r => Math.max(1, Math.ceil(N0 / Math.pow(2, Math.floor(r / pity))));
+  let simE = 0;
+  function simSetup() {
+    const max = Math.min(2000, pity * (Math.ceil(Math.log2(Math.max(2, N0))) + 1)); simIn.max = String(max); if (+simIn.value > max) simIn.value = String(max);
+    let surv = 1, E = 0; for (let r = 0; r < 200000 && surv > 1e-9; r++) { E += surv; surv *= 1 - 1 / nAt(r); } simE = E;
+    $('#simE').textContent = Math.round(E).toLocaleString('en-US'); simUpdate();
+  }
+  function simUpdate() {
+    if (!N0) return; const r = +simIn.value; let surv = 1; for (let i = 0; i < r; i++) surv *= 1 - 1 / nAt(i);
+    const P = 1 - surv, n = nAt(r), ob = $('#oddsN');
+    if (ob.textContent !== n.toLocaleString('en-US')) { ob.textContent = n.toLocaleString('en-US'); ob.classList.remove('bump'); void ob.offsetWidth; ob.classList.add('bump'); setTimeout(() => ob.classList.remove('bump'), 220); }
+    $('#simR').textContent = r.toLocaleString('en-US'); $('#simP').textContent = (P >= .995 ? '99.5%+' : (P * 100).toFixed(P < .1 ? 1 : 0) + '%');
+    $('#oddsMeter').style.width = (P * 100).toFixed(1) + '%'; simIn.style.setProperty('--fill', (r / Math.max(1, +simIn.max) * 100).toFixed(1) + '%');
+  }
+  simIn.addEventListener('input', simUpdate);
   (async () => {
     try { const j = await mFetch('fair'); shelf = (j.items || []).filter(x => x.image && (x.insured || x.usd)); if (!shelf.length) { const k = await mFetch('new'); shelf = (k.items || []).filter(x => x.image); } showSlab(0); }
     catch { $('#shName').textContent = 'The card market is not answering right now.'; }
   })();
 
-  /* ---------- see a pull: shake, tear, a real slab rises out ---------- */
-  const stage = $('#stage'), tryBtn = $('#tryBtn'); let busy = false, opened = false;
-  tryBtn.onclick = async () => {
-    if (busy) return; busy = true;
-    if (opened) { stage.classList.remove('torn'); opened = false; tryBtn.textContent = 'See a pull'; await sleep(650); busy = false; return; }
-    const pool = shelf.length ? shelf : []; const x = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
-    const im = $('#pullImg');
-    if (x && x.image) { im.src = thumb(x.image, 420); im.onerror = () => { if (im.src !== x.image) im.src = x.image; }; await Promise.race([new Promise(r => { im.onload = r; }), sleep(900)]); }
+  /* ---------- see a pull: press the button or swipe across the pack; it tears, sparks fly, a real slab rises out ---------- */
+  const stage = $('#stage'), tryBtn = $('#tryBtn'), packEl = $('#pack'), tilt = $('#tilt'); let busy = false, opened = false;
+  const pkTop = () => packEl.querySelector('.pk-top');
+  function burst() {
+    if (reduce) return; const B = $('#burst'), cols = ['#fff3dc', '#ffd08a', '#ff9a3c', '#ff6a1a', '#ffc24a'];
+    for (let i = 0; i < 38; i++) {
+      const e = document.createElement('i'), s = 4 + Math.random() * 8, shard = Math.random() < .45;
+      e.style.cssText = `width:${shard ? s * 1.7 : s}px;height:${shard ? s * .55 : s}px;background:${cols[i % cols.length]};border-radius:${shard ? '1px' : '50%'};${shard ? '' : 'box-shadow:0 0 8px rgba(255,150,60,.8);'}`;
+      B.appendChild(e); const a = Math.random() * Math.PI * 2, v = 110 + Math.random() * 260, dx = Math.cos(a) * v, dy = Math.sin(a) * v * .8 - 70;
+      e.animate([{ transform: 'translate(-50%,-50%) rotate(0deg)', opacity: 1 }, { transform: `translate(${dx.toFixed(0)}px, ${(dy + 160).toFixed(0)}px) rotate(${((Math.random() - .5) * 720).toFixed(0)}deg)`, opacity: 0 }], { duration: 900 + Math.random() * 700, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => e.remove();
+    }
+    stage.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-7px,2px)' }, { transform: 'translate(6px,-2px)' }, { transform: 'translate(-3px,1px)' }, { transform: 'translate(0,0)' }], { duration: 320 });
+  }
+  const pulls = [];
+  function addToTray(x) {
+    if (!x) return; pulls.unshift(x); const S = $('#slots');
+    S.insertAdjacentHTML('afterbegin', `<a href="${esc(x.url)}" target="_blank" rel="noopener" title="${esc(x.name)}"><img src="${esc(thumb(x.image, 120))}" data-o="${esc(x.image)}" alt=""></a>`); const ni = S.querySelector('img'); ni.onerror = () => { if (ni.dataset.o) { ni.src = ni.dataset.o; ni.dataset.o = ''; } else ni.remove(); };
+    while (S.children.length > 5) S.lastElementChild.remove();
+  }
+  function reseal() { stage.classList.remove('torn'); opened = false; tryBtn.textContent = 'See a pull'; }
+  async function doRip(swiped) {
+    if (busy || opened) return; busy = true;
+    const x = shelf.length ? shelf[Math.floor(Math.random() * shelf.length)] : null, im = $('#pullImg');
+    if (x && x.image) { im.onerror = () => { if (im.src !== x.image) im.src = x.image; }; const ld = new Promise(r => { im.onload = r; }); im.src = thumb(x.image, 420); await Promise.race([ld, sleep(900)]); }
     $('#pullNm').textContent = x ? trunc(x.name, 38) : 'A real graded slab';
     $('#pullMt').textContent = x ? [x.grader && x.grade ? x.grader + ' ' + x.grade : x.gradeLabel, x.insured ? 'insured ' + usd0(x.insured) : null].filter(Boolean).join(' · ') : '';
-    stage.classList.add('shake'); await sleep(reduce ? 50 : 560); stage.classList.remove('shake');
-    stage.classList.add('torn'); opened = true; tryBtn.textContent = 'Seal it again'; busy = false;
-  };
+    if (!swiped) { stage.classList.add('shake'); await sleep(reduce ? 50 : 560); stage.classList.remove('shake'); }
+    burst(); stage.classList.add('torn'); opened = true; tryBtn.textContent = 'Seal it again'; addToTray(x); busy = false;
+  }
+  tryBtn.onclick = () => { if (busy) return; opened ? reseal() : doRip(false); };
+  // swipe across the pack to tear it
+  let dragging = false, x0 = 0, y0 = 0, pid = null;
+  packEl.addEventListener('pointerdown', e => { if (busy || opened) return; dragging = true; x0 = e.clientX; y0 = e.clientY; pid = e.pointerId; try { packEl.setPointerCapture(pid); } catch {} packEl.classList.add('drag'); });
+  packEl.addEventListener('pointermove', e => {
+    if (!dragging) return; const dx = e.clientX - x0, dy = e.clientY - y0, t = pkTop(); if (!t) return;
+    t.style.transition = 'none'; t.style.transform = `translate(${(dx * .3).toFixed(1)}px, ${(Math.min(0, dy) * .3 - Math.abs(dx) * .08).toFixed(1)}px) rotate(${(dx * .05).toFixed(2)}deg)`;
+    if (Math.abs(dx) > 110 || dy < -110) endDrag(true);
+  });
+  function endDrag(rip) { if (!dragging) return; dragging = false; try { packEl.releasePointerCapture(pid); } catch {} packEl.classList.remove('drag'); const t = pkTop(); if (t) { t.style.transition = ''; t.style.transform = ''; } if (rip) doRip(true); }
+  packEl.addEventListener('pointerup', () => endDrag(false)); packEl.addEventListener('pointercancel', () => endDrag(false));
+  // the pack leans toward the pointer and a foil sheen follows it; when idle the sheen drifts on its own
+  let hovering = false;
+  if (!reduce && matchMedia('(pointer: fine)').matches) {
+    stage.addEventListener('pointermove', e => {
+      if (dragging) return; hovering = true; const r = packEl.getBoundingClientRect();
+      const px = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / r.width)), py = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / r.height));
+      packEl.classList.add('live'); tilt.style.setProperty('--ry', (px * 24).toFixed(1) + 'deg'); tilt.style.setProperty('--rx', (-py * 16).toFixed(1) + 'deg'); tilt.style.setProperty('--sx', (50 + px * 70).toFixed(0) + '%');
+    });
+    stage.addEventListener('pointerleave', () => { hovering = false; packEl.classList.remove('live'); tilt.style.setProperty('--rx', '0deg'); tilt.style.setProperty('--ry', '0deg'); });
+  }
+  if (!reduce) { const t0 = performance.now(); const idle = t => { if (!hovering && !document.hidden) tilt.style.setProperty('--sx', (50 + Math.sin((t - t0) / 1400) * 65).toFixed(0) + '%'); requestAnimationFrame(idle); }; requestAnimationFrame(idle); }
 
   /* ---------- connect, then rip (ripping switches on with the first pack) ---------- */
   const ripBtn = $('#ripBtn');
@@ -159,6 +220,19 @@
   if ('IntersectionObserver' in window) { const mo = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { mStart(); mo.disconnect(); } }, { rootMargin: '700px 0px' }); mo.observe($('#shelf')); } else mStart();
   setInterval(() => { if (!document.hidden && mStarted) mChip(); }, 5000);
   setInterval(() => { if (!document.hidden && mStarted) loadMarket(mview, true); }, 60000);
+
+  /* ---------- feel: a soft glow follows the cursor, buttons lean toward it, cards tilt ---------- */
+  const fine = matchMedia('(pointer: fine)').matches;
+  const cg = $('#cglow');
+  if (cg && fine && !reduce) { let gx = innerWidth / 2, gy = innerHeight / 3, tx = gx, ty = gy; addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; }, { passive: true }); const f = () => { gx += (tx - gx) * .09; gy += (ty - gy) * .09; cg.style.transform = `translate3d(${gx.toFixed(1)}px, ${gy.toFixed(1)}px, 0)`; requestAnimationFrame(f); }; f(); } else if (cg) cg.remove();
+  if (fine && !reduce) $$('.mag').forEach(b => { b.addEventListener('pointermove', e => { const r = b.getBoundingClientRect(); b.style.transform = `translate(${((e.clientX - r.left - r.width / 2) * .12).toFixed(1)}px, ${((e.clientY - r.top - r.height / 2) * .25).toFixed(1)}px)`; }); b.addEventListener('pointerleave', () => { b.style.transform = ''; }); });
+  document.addEventListener('click', e => { const b = e.target.closest('.btn.or'); if (!b || reduce) return; const r = b.getBoundingClientRect(), s = Math.max(r.width, r.height), sp = document.createElement('span'); sp.className = 'ripple'; sp.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX - r.left - s / 2}px;top:${e.clientY - r.top - s / 2}px`; if (getComputedStyle(b).position === 'static') b.style.position = 'relative'; b.style.overflow = 'hidden'; b.appendChild(sp); setTimeout(() => sp.remove(), 650); });
+  if (fine && !reduce) {
+    let last = null; const reset = c => { if (c) { c.style.removeProperty('--rx'); c.style.removeProperty('--ry'); } };
+    mgrid.addEventListener('pointermove', e => { const c = e.target.closest('.mc.shown'); if (c !== last) { reset(last); last = c; } if (!c) return; const r = c.getBoundingClientRect(); c.style.setProperty('--ry', (((e.clientX - r.left) / r.width - .5) * 14).toFixed(1) + 'deg'); c.style.setProperty('--rx', ((.5 - (e.clientY - r.top) / r.height) * 12).toFixed(1) + 'deg'); });
+    mgrid.addEventListener('pointerleave', () => { reset(last); last = null; });
+    $$('.step').forEach(s => { s.addEventListener('pointermove', e => { const r = s.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height; s.style.setProperty('--ry', ((px - .5) * 10).toFixed(1) + 'deg'); s.style.setProperty('--rx', ((.5 - py) * 8).toFixed(1) + 'deg'); s.style.setProperty('--gx', (px * 100).toFixed(0) + '%'); s.style.setProperty('--gy', (py * 100).toFixed(0) + '%'); }); s.addEventListener('pointerleave', () => { s.style.removeProperty('--rx'); s.style.removeProperty('--ry'); }); });
+  }
 
   /* ---------- reveals and the nav ---------- */
   const rv = $$('.rv');
